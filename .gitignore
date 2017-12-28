@@ -1,0 +1,4 @@
+clean_data.pickle
+__pycache__
+data.txt
+docs.txt

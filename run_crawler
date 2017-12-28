@@ -1,0 +1,2 @@
+rm data.txt
+scrapy runspider stack_overflow_crawler.py
