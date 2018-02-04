@@ -7,9 +7,13 @@ from stop_words import get_stop_words
 import enchant
 from nltk.stem.porter import PorterStemmer
 from gensim import corpora, models
+from gensim.models import KeyedVectors
 
-def clean_data():
-    docs = [line.lower().split() for line in open('data.txt')]
+os.environ["PYRO_SERIALIZERS_ACCEPTED"] = 'pickle'
+os.environ["PYRO_SERIALIZER"] = 'pickle'
+
+def clean_data(filename):
+    docs = [line.lower().split() for line in open(filename)]
     # Filter out english words
     en_check = enchant.Dict('en_US')
     for i, doc in enumerate(docs):
@@ -25,27 +29,28 @@ def clean_data():
     for i, doc in enumerate(docs):
         docs[i] = [p_stemmer.stem(word) for word in doc]
 
-    with open('clean_data.pickle', 'wb') as f:
+    with open('{}.pickle'.format(filename), 'wb') as f:
         pickle.dump(docs, f)
 
-if not os.path.isfile('clean_data.pickle'):
+def process_docs(file):
     print("cleaning data...")
-    clean_data()
+    clean_data(file)
 
-with open('clean_data.pickle', 'rb') as f:
+process_docs('master.txt')
+with open('master.txt.pickle', 'rb') as f:
     print("loading data...")
     docs = pickle.load(f)
 
-
-# assign ids for each word and collect stats
-dictionary = corpora.Dictionary(docs)
-# create corpus
-corpus = [dictionary.doc2bow(doc) for doc in docs]
-
-# apply the lda model
-print("running lda...")
-ldamodel = models.ldamodel.LdaModel(corpus, num_topics=8, id2word=dictionary, passes=100)
-print("LDA RESULTS\n")
-pprint(ldamodel.print_topics(num_topics=8, num_words=3))
-
-pdb.set_trace()
+    # assign ids for each word and collect stats
+    dictionary = corpora.Dictionary(docs)
+    # create corpus
+    corpus = [dictionary.doc2bow(doc) for doc in docs]
+    tfidf = models.TfidfModel(corpus)
+    # perform tfidf
+    tfcorpus = [tfidf[x] for x in corpus]
+    print("running lda...")
+    # apply the lda model
+    ldamodel = models.ldamodel.LdaModel(tfcorpus, num_topics=100, id2word=dictionary, passes=100, distributed=True)
+    print("LDA RESULTS\n")
+    pprint(ldamodel.print_topics(num_topics=25, num_words=5))
+    ldamodel.save('lda_model.lda')

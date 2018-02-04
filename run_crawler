@@ -1,2 +1,3 @@
-rm data.txt
-scrapy runspider stack_overflow_crawler.py
+rm *.txt
+rm *.pickle
+scrapy runspider WikiCrawler.py
